@@ -1,0 +1,29 @@
+services:
+  glossary-grpc:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    volumes:
+      - glossary_data:/data
+    ports:
+      - "50051:50051"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket,sys; s=socket.socket(); s.settimeout(1); s.connect((\"127.0.0.1\",50051)); sys.exit(0)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  grpcui:
+    image: fullstorydev/grpcui
+    command: ["-plaintext", "-bind", "0.0.0.0", "-port", "8080", "glossary-grpc:50051"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      glossary-grpc:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  glossary_data:
